@@ -1,0 +1,8 @@
+# Module repos live here but are separate git repositories.
+/ai_content_studio/
+/content_syndication/
+
+# Handoff prompt, not part of the harness.
+/HANDOFF.md
+
+.DS_Store

@@ -1,0 +1,23 @@
+services:
+  ci:
+    build: .
+    # Same absolute path inside and outside the container, so paths in job
+    # logs and in Docker bind operations match what you see on the Mac.
+    working_dir: ${MODULES_DIR}
+    environment:
+      - HOME=/gcl-home
+      - MODULES_DIR=${MODULES_DIR}
+      - TEMPLATES_REPO=${TEMPLATES_REPO:-project/gitlab_templates}
+      - TEMPLATES_REF=${TEMPLATES_REF:-main}
+      - DEFAULT_JOBS=${DEFAULT_JOBS:-composer phpcs phpstan cspell eslint stylelint phpunit}
+      - GIT_SSH_COMMAND=ssh -F /dev/null -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/gcl-home/known_hosts
+      - DOCKER_DEFAULT_PLATFORM
+      - JOB_PLATFORM
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${MODULES_DIR}:${MODULES_DIR}
+      - ${HOME}/.ssh:/gcl-home/.ssh:ro
+      - gcl-home:/gcl-home
+
+volumes:
+  gcl-home:
