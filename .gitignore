@@ -6,3 +6,6 @@
 /HANDOFF.md
 
 .DS_Store
+
+# Local settings (MODULES_DIR path), not committed.
+/.env
