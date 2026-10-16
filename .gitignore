@@ -9,3 +9,6 @@
 
 # Local settings (MODULES_DIR path), not committed.
 /.env
+
+# State from another tool, not part of the harness.
+/.sync-state/
