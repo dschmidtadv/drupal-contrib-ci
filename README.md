@@ -2,7 +2,7 @@
 
 A Docker Compose project that runs the Drupal.org GitLab CI template locally, using [gitlab-ci-local](https://github.com/firecow/gitlab-ci-local), against the contrib module repos that sit in this folder. It exists so CI failures show up before anything is pushed to drupal.org.
 
-The modules currently covered are `ai_content_studio` and `content_syndication`. Each is a separate git repository, and this folder's own repository ignores them.
+It works with **any Drupal.org contrib module**. Clone as many module repos as you like as sibling directories here; the harness detects them automatically. Each module is a separate git repository that this folder's own repository ignores.
 
 ## Requirements
 
@@ -17,6 +17,24 @@ TEMPLATES_REF=main
 ```
 
 `TEMPLATES_REF` should match what your real pipeline on drupal.org resolves to, because the results depend on the template version.
+
+## Adding a module
+
+1. Clone the drupal.org project repo as a sibling of this folder:
+
+```bash
+git clone https://git.drupal.org/project/my_module.git
+```
+
+2. Run any make command with `MODULE=my_module`:
+
+```bash
+make fast MODULE=my_module
+make ci MODULE=my_module
+make phpunit MODULE=my_module
+```
+
+That is all. No configuration is needed. The harness discovers any directory in this folder that contains a `.git` subdirectory.
 
 ## Commands
 
