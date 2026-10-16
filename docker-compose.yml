@@ -13,9 +13,10 @@ services:
       - GIT_SSH_COMMAND=ssh -F /dev/null -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/gcl-home/known_hosts
       - DOCKER_DEFAULT_PLATFORM
       - JOB_PLATFORM
+      - COMPOSER_CACHE
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${MODULES_DIR}:${MODULES_DIR}
+      - ${MODULES_DIR}:${MODULES_DIR}:ro
       - ${HOME}/.ssh:/gcl-home/.ssh:ro
       - gcl-home:/gcl-home
 

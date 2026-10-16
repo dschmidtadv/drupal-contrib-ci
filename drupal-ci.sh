@@ -60,6 +60,17 @@ host_of() {
 # vendor/ and node_modules/ (CI rebuilds those, and GitLab never sees them), and
 # artifacts and the include cache live in the volume too. The module itself is only
 # ever read, never written. --state-dir takes a path relative to the working dir.
+now_ms() { echo $(( ${EPOCHREALTIME/./} / 1000 )); }
+
+# timed <label> <command...> runs the command and prints its wall time to stderr.
+timed() {
+  local label="$1" start rc; shift
+  start="$(now_ms)"
+  "$@"; rc=$?
+  echo "[timing] $label: $(( $(now_ms) - start )) ms" >&2
+  return $rc
+}
+
 work_abs()  { echo "$HOME/work/$1"; }
 state_abs() { echo "$HOME/state/$1"; }
 state_rel() { realpath -m --relative-to="$(work_abs "$1")" "$(state_abs "$1")"; }
@@ -116,10 +127,10 @@ run_module() {
     *) echo "warning: origin of $mod is $(origin_of "$mod"), so template includes may not resolve" ;;
   esac
 
-  sync_module "$mod"
-  seed_includes "$mod" || return 1
+  timed "sync $mod" sync_module "$mod"
+  timed "seed includes $mod" seed_includes "$mod" || return 1
 
-  local job_list; job_list="$(module_jobs "$mod")"
+  local job_list; job_list="$(timed "list jobs $mod" module_jobs "$mod")"
   for job in "$@"; do
     if has_job "$job"; then selected+=("$job"); else echo "skip $job (not defined in $mod)"; fi
   done
@@ -127,9 +138,18 @@ run_module() {
 
   # JOB_PLATFORM (set by `make phpunit`) makes Docker pull job images for another
   # platform. It is applied here only, so this container itself stays native.
-  ( cd "$(work_abs "$mod")" \
-      && { [ -z "${JOB_PLATFORM:-}" ] || export DOCKER_DEFAULT_PLATFORM="$JOB_PLATFORM"; } \
-      && gitlab-ci-local --state-dir "$(state_rel "$mod")" --needs "${selected[@]}" )
+  # Composer's download cache lives in a named volume shared by every job container,
+  # so packages are fetched once instead of on every run. COMPOSER_CACHE=0 turns it off.
+  local cache_args=()
+  if [ "${COMPOSER_CACHE:-1}" != 0 ]; then
+    cache_args=(--volume composer-cache:/composer-cache --variable COMPOSER_CACHE_DIR=/composer-cache)
+  fi
+
+  timed "run jobs $mod (${selected[*]})" bash -c '
+    cd "$1" && shift
+    [ -z "${JOB_PLATFORM:-}" ] || export DOCKER_DEFAULT_PLATFORM="$JOB_PLATFORM"
+    exec gitlab-ci-local "$@"' _ "$(work_abs "$mod")" \
+      --state-dir "$(state_rel "$mod")" "${cache_args[@]}" --needs "${selected[@]}"
 }
 
 case "${1:-all}" in
@@ -138,7 +158,7 @@ case "${1:-all}" in
     exit 0 ;;
   list)
     [ -n "${2:-}" ] || { echo "usage: drupal-ci list <module>"; exit 2; }
-    sync_module "$2"; seed_includes "$2" || exit 1
+    timed "sync $2" sync_module "$2"; timed "seed includes $2" seed_includes "$2" || exit 1
     cd "$(work_abs "$2")" && exec gitlab-ci-local --state-dir "$(state_rel "$2")" --list ;;
 esac
 
