@@ -12,3 +12,6 @@
 
 # State from another tool, not part of the harness.
 /.sync-state/
+
+# Agent session logs, not part of the harness.
+/.ai-memory/
