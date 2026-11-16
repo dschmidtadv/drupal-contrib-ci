@@ -102,7 +102,7 @@ Each step prints a `[timing]` line to stderr.
 
 ## Differences from the real pipeline
 
-- The local copy includes untracked files in a module, which GitLab would not see.
+- Uncommitted edits to tracked files are tested, which GitLab would not see until they are pushed. Untracked files are not tested: gitlab-ci-local leaves them out of job containers (it lists them in `rsync-exclude-.docker` in the state dir), as GitLab would. Stage a new file with `git add` to include it in a local run.
 - Results depend on `TEMPLATES_REF`, which may differ from the template version drupal.org uses on the day of a push.
 - Jobs run in the DrupalCI images through the host Docker socket, which `docker-compose.yml` mounts.
 
