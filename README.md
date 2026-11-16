@@ -34,7 +34,9 @@ make ci MODULE=my_module
 make phpunit MODULE=my_module
 ```
 
-That is all. No configuration is needed. The harness discovers any directory in this folder that contains a `.git` subdirectory.
+No other configuration is needed. The harness discovers any directory in this folder that contains a `.gitlab-ci.yml` file. A run without `MODULE=` covers all of them. A module without `.gitlab-ci.yml` is not discovered, and naming it with `MODULE=` stops with `no .gitlab-ci.yml`.
+
+Add the new directory to `.gitignore` under the module repos block, so this folder's repository does not pick it up.
 
 ## Commands
 
