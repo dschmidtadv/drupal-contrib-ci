@@ -110,7 +110,9 @@ Each step prints a `[timing]` line to stderr.
 
 - Never run gitlab-ci-local directly inside a module folder. It writes `web/`, `vendor/` and a modified `composer.json` into the module.
 - Do not commit or push in the module repos as part of a CI run.
-- `docker-compose.yml` mounts `~/.ssh` read-only. Template includes now come over HTTPS, so the mount is probably unneeded, but that has not been confirmed.
+- The CI container has no SSH keys. Template includes come over HTTPS, and the container also holds the Docker socket, so keys are kept out of it. Push from the Mac, not from the container. The image still has the SSH client, because gitlab-ci-local runs `ssh -G <origin host>` to work out where the include cache lives. That reads config only and opens no connection.
+- Each run prints a `templates:` line with the template commit SHA. Compare it with the drupal.org pipeline when results differ. `CACHED, refresh failed` means the run used an older local copy.
+- If gitlab-ci-local cannot list a module's jobs, the module fails with the listing errors. It used to skip every job and report success.
 
 ## Troubleshooting
 

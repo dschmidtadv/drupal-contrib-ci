@@ -10,14 +10,12 @@ services:
       - TEMPLATES_REPO=${TEMPLATES_REPO:-project/gitlab_templates}
       - TEMPLATES_REF=${TEMPLATES_REF:-main}
       - DEFAULT_JOBS=${DEFAULT_JOBS:-composer phpcs phpstan cspell eslint stylelint phpunit}
-      - GIT_SSH_COMMAND=ssh -F /dev/null -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/gcl-home/known_hosts
       - DOCKER_DEFAULT_PLATFORM
       - JOB_PLATFORM
       - COMPOSER_CACHE
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${MODULES_DIR}:${MODULES_DIR}:ro
-      - ${HOME}/.ssh:/gcl-home/.ssh:ro
       - gcl-home:/gcl-home
 
 volumes:

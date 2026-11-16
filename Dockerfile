@@ -1,5 +1,8 @@
 FROM node:22-bookworm-slim
 
+# openssh-client stays: gitlab-ci-local runs `ssh -G <origin host>` to resolve the
+# include cache path. That reads config only and needs no keys, so ~/.ssh is not
+# mounted. Without the binary it falls back to gitlab.com and misses the seeded cache.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git rsync openssh-client curl ca-certificates bash \
  && rm -rf /var/lib/apt/lists/*

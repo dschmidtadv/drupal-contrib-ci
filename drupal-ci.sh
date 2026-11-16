@@ -37,14 +37,19 @@ templates_ready=0
 fetch_templates() {
   [ "$templates_ready" = 1 ] && return 0
   local url="https://${TEMPLATES_HOST}/${TEMPLATES_REPO}.git"
+  local tpl_source="fresh"
   if [ -d "$TEMPLATES_DIR/.git" ]; then
-    git -C "$TEMPLATES_DIR" fetch --quiet --depth 1 origin "$TEMPLATES_REF" \
-      && git -C "$TEMPLATES_DIR" checkout --quiet -f FETCH_HEAD \
-      || echo "warning: could not refresh templates, using the cached copy"
+    if ! { git -C "$TEMPLATES_DIR" fetch --quiet --depth 1 origin "$TEMPLATES_REF" \
+        && git -C "$TEMPLATES_DIR" checkout --quiet -f FETCH_HEAD; }; then
+      echo "warning: could not refresh templates, using the cached copy"
+      tpl_source="CACHED, refresh failed"
+    fi
   else
     git clone --quiet --depth 1 --branch "$TEMPLATES_REF" "$url" "$TEMPLATES_DIR" \
       || { echo "error: could not clone $url at $TEMPLATES_REF"; return 1; }
   fi
+  # Compare this SHA with the template commit the drupal.org pipeline used.
+  echo "templates: $TEMPLATES_REPO@$TEMPLATES_REF = $(git -C "$TEMPLATES_DIR" rev-parse --short HEAD) ($tpl_source)"
   templates_ready=1
 }
 
@@ -106,8 +111,11 @@ origin_of() {
 }
 
 # List once per module; the listing evaluates `exists:` globs over the working copy.
+# stderr goes to a log so a failed listing can be shown; with pipefail the
+# function returns gitlab-ci-local's exit status, not sed's.
+list_errors() { echo "$(state_abs "$1")/list-errors.log"; }
 module_jobs() {
-  ( cd "$(work_abs "$1")" && gitlab-ci-local --state-dir "$(state_rel "$1")" --list 2>/dev/null ) \
+  ( cd "$(work_abs "$1")" && gitlab-ci-local --state-dir "$(state_rel "$1")" --list 2>"$(list_errors "$1")" ) \
     | sed 's/\x1b\[[0-9;]*m//g'
 }
 
@@ -130,7 +138,15 @@ run_module() {
   timed "sync $mod" sync_module "$mod"
   timed "seed includes $mod" seed_includes "$mod" || return 1
 
-  local job_list; job_list="$(timed "list jobs $mod" module_jobs "$mod")"
+  # A failed or empty listing must fail the module. Otherwise every job is
+  # skipped as "not defined" and the run reports success without testing anything.
+  # The template always defines `composer`, so its absence means the listing broke.
+  local job_list
+  if ! job_list="$(timed "list jobs $mod" module_jobs "$mod")" || ! has_job composer; then
+    echo "error: could not list jobs for $mod. gitlab-ci-local said:"
+    sed 's/\x1b\[[0-9;]*m//g' "$(list_errors "$mod")" | tail -n 20
+    return 1
+  fi
   for job in "$@"; do
     if has_job "$job"; then selected+=("$job"); else echo "skip $job (not defined in $mod)"; fi
   done
